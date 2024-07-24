@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">RSecktor</string>
+    <string name="todo">TODO</string>
+    <string name="imageDuck">TODO</string>
+    <string name="welcome_header">RSecktor-APP</string>
+    <string name="continueButton">Продолжить</string>
+    <string name="welcome_footer">P.s Нажимая на кнопку продолжить вы соглашаетесь с тем что вы по сути берете копию бота, но сам бот не является вашим. </string>
+    <string name="beta">Beta v1-Design</string>
+    <string name="button_codesend">Получить код</string>
+    <string name="text_number">Введите ваш номер</string>
+    <string name="text_check_code">Введите код</string>
+    <string name="authorization_header">Авторизация</string>
+</resources>

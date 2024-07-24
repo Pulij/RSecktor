@@ -1,0 +1,8 @@
+# Project exclude paths
+/.gradle/
+/app/.cxx/
+/app/src/main/assets/nodejs-project/node_modules/libphonenumber-js/build/
+/app/src/main/assets/nodejs-project/node_modules/libsignal/node_modules/protobufjs/bin/
+/app/src/main/assets/nodejs-project/node_modules/libsignal/node_modules/protobufjs/cli/bin/
+/app/src/main/assets/nodejs-project/node_modules/pino/build/
+/app/src/main/assets/nodejs-project/node_modules/uuid/dist/bin/
