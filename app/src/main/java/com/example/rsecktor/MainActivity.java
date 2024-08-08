@@ -10,10 +10,12 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
+import android.os.Looper;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -23,6 +25,10 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import com.example.rsecktor.Service.ForegroundService;
+import com.example.rsecktor.Service.UpdateCheckerService;
+import com.example.rsecktor.Service.WebSocketService;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +40,7 @@ import java.util.Objects;
 
 import okhttp3.Call;
 import okhttp3.Callback;
-import okhttp3.FormBody;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -47,12 +53,23 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("node");
     }
 
+    private static final long CHECK_INTERVAL = 60 * 1000;
     private static final String PREFS_NAME = "MyPrefs";
     private static final String FIRST_LAUNCH_KEY = "firstLaunch";
     private static final String NODE_PROJECT_DIR = "nodejs-project";
-    private static final String NODE_JS_CLIENT = "lib/client.js";
+    private static final String NODE_JS_CLIENT = "lib/client/client.js";
     private static final String NODE_SERVER_URL = "http://localhost:3000/";
     private static boolean startedNodeAlready = false;
+
+    private final Handler handler = new Handler();
+    private final Runnable checkUpdateRunnable = new Runnable() {
+        @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+        @Override
+        public void run() {
+            UpdateCheckerService.checkForUpdate(MainActivity.this);
+            handler.postDelayed(this, CHECK_INTERVAL);
+        }
+    };
 
     private final BroadcastReceiver messageReceiver = new BroadcastReceiver() {
         @Override
@@ -72,20 +89,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         checkFirstLaunch();
         setContentView(R.layout.activity_main);
-
         initializeUI();
+        handler.post(checkUpdateRunnable);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver, new IntentFilter("WebSocketMessage"));
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(messageReceiver);
     }
 
     private void checkFirstLaunch() {
@@ -109,7 +120,6 @@ public class MainActivity extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void initializeUI() {
         getWindow().setStatusBarColor(Color.parseColor("#3A2A5A"));
-
         Button buttonStartNode = findViewById(R.id.startNodeButton);
         Button buttonStopNode = findViewById(R.id.stopNodeButton);
 
@@ -117,59 +127,60 @@ public class MainActivity extends AppCompatActivity {
         buttonStopNode.setOnClickListener(v -> stopNodeServer());
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
     private void startNodeServer() {
         if (startedNodeAlready) {
             Toast.makeText(getApplicationContext(), "NodeJS сервер уже запущен", Toast.LENGTH_SHORT).show();
             return;
+        } else if (!isNetworkAvailable()) {
+            Toast.makeText(getApplicationContext(), "Эх, к сожалению я не умею работать без интернета:(", Toast.LENGTH_SHORT).show();
+            return;
         }
 
-        startWebSocketService();
-        HandlerThread handlerThread = new HandlerThread("NodeHandlerThread");
-        handlerThread.start();
-        new Handler(handlerThread.getLooper()).post(() -> {
-            String nodeDir = getApplicationContext().getFilesDir().getAbsolutePath() + "/" + NODE_PROJECT_DIR;
-
-            if (wasAPKUpdated()) {
-                File nodeDirFile = new File(nodeDir);
-                if (nodeDirFile.exists()) {
-                    deleteFolderRecursively(nodeDirFile);
-                }
-                copyAssetFolder(getApplicationContext().getAssets(), NODE_PROJECT_DIR, nodeDir);
-                saveLastUpdateTime();
-            }
-
-            try {
-                startNodeWithArguments(new String[]{"node", nodeDir + "/" + NODE_JS_CLIENT});
-                runOnUiThread(() -> Toast.makeText(getApplicationContext(), "NodeJS сервер был запущен на " + NODE_SERVER_URL, Toast.LENGTH_SHORT).show());
-
-                // Получение номера телефона из SharedPreferences
-                SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
-                String phoneNumber = sharedPreferences.getString("phoneEditText", null);
-
-                // Отправка номера телефона на сервер
-                if (phoneNumber != null) {
-                    sendPhoneNumberToServer(phoneNumber);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Ошибка запуска NodeJS сервера", Toast.LENGTH_SHORT).show());
-            }
-        });
-
         startedNodeAlready = true;
+        startWebSocketService();
+
+        new Thread(new Runnable() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
+            @Override
+            public void run() {
+                String nodeDir = getApplicationContext().getFilesDir().getAbsolutePath() + "/nodejs-project";
+                if (wasAPKUpdated()) {
+                    File nodeDirReference = new File(nodeDir);
+                    if (nodeDirReference.exists()) {
+                        deleteFolderRecursively(nodeDirReference);
+                    }
+                    copyAssetFolder(getApplicationContext().getAssets(), NODE_PROJECT_DIR, nodeDir);
+                    saveLastUpdateTime();
+                }
+
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.postDelayed(() -> {
+                    Toast.makeText(getApplicationContext(), "NodeJS сервер был запущен на " + NODE_SERVER_URL, Toast.LENGTH_SHORT).show();
+                    SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+                    String phoneNumber = sharedPreferences.getString("phoneEditText", null);
+                    sendPhoneNumberToServer(phoneNumber);
+                }, 8000);
+
+                startNodeWithArguments(new String[]{"node", nodeDir + "/" + NODE_JS_CLIENT});
+            }
+        }).start();
     }
 
     private void sendPhoneNumberToServer(String phoneNumber) {
         OkHttpClient client = new OkHttpClient();
-        String url = "http://localhost:3000/"; // Замените на ваш реальный URL
-
-        RequestBody body = new FormBody.Builder()
-                .add("phoneNumber", phoneNumber)
-                .build();
+        MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+        String[] data = getDecryptedUrlsAndToken();
+        String mongoUrl = data[0];
+        String githubToken = data[1];
+        String json = "{"
+                + "\"phoneNumber\":\"" + phoneNumber + "\","
+                + "\"mongoUri\":\"" + mongoUrl + "\","
+                + "\"githubToken\":\"" + githubToken + "\""
+                + "}";
+        RequestBody body = RequestBody.create(json, JSON);
 
         Request request = new Request.Builder()
-                .url(url)
+                .url(NODE_SERVER_URL + "auth")
                 .post(body)
                 .build();
 
@@ -181,11 +192,15 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) {
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                String responseBody = response.body() != null ? response.body().string() : "";
                 if (response.isSuccessful()) {
                     runOnUiThread(() -> Toast.makeText(MainActivity.this, "Номер телефона успешно отправлен", Toast.LENGTH_SHORT).show());
                 } else {
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Ошибка ответа от сервера", Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "Ошибка ответа от сервера: " + response.code(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "Сообщение от сервера: " + responseBody, Toast.LENGTH_LONG).show();
+                    });
                 }
             }
         });
@@ -197,9 +212,22 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        finish();
+        Intent serviceIntent = new Intent(this, ForegroundService.class);
+        stopService(serviceIntent);
+        ForegroundService.stopForegroundService(this);
+        Intent webSocketServiceIntent = new Intent(this, WebSocketService.class);
+        stopService(webSocketServiceIntent);
+
+        finishAffinity();
         System.exit(0);
     }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
 
     private static boolean deleteFolderRecursively(File file) {
         try {
@@ -227,11 +255,18 @@ public class MainActivity extends AppCompatActivity {
 
             assert files != null;
             if (files.length == 0) {
-                res &= copyAsset(assetManager, fromAssetPath, toPath);
+                File targetFile = new File(toPath);
+                if (!targetFile.exists()) {
+                    res &= copyAsset(assetManager, fromAssetPath, toPath);
+                }
             } else {
-                new File(toPath).mkdirs();
-                for (String file : files)
+                File targetDir = new File(toPath);
+                if (!targetDir.exists()) {
+                    targetDir.mkdirs();
+                }
+                for (String file : files) {
                     res &= copyAssetFolder(assetManager, fromAssetPath + "/" + file, toPath + "/" + file);
+                }
             }
             return res;
         } catch (Exception e) {
@@ -245,8 +280,13 @@ public class MainActivity extends AppCompatActivity {
         InputStream in;
         OutputStream out;
         try {
+            File targetFile = new File(toPath);
+            if (targetFile.exists()) {
+                return true;
+            }
+
             in = assetManager.open(fromAssetPath);
-            new File(toPath).createNewFile();
+            targetFile.createNewFile();
             out = Files.newOutputStream(Paths.get(toPath));
             copyFile(in, out);
             in.close();
@@ -295,4 +335,5 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public native Integer startNodeWithArguments(String[] arguments);
+    public native String[] getDecryptedUrlsAndToken();
 }

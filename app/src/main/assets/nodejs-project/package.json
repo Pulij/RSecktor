@@ -1,9 +1,12 @@
 {
   "name": "nodejs-project",
   "version": "1.0.0",
-  "main": "lib/client.js",
+  "main": "config.js",
   "directories": {
     "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
@@ -11,11 +14,15 @@
   "description": "",
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.5",
+    "axios": "^1.7.3",
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
+    "mongoose": "^8.5.2",
     "node-cache": "^5.1.2",
     "path": "^0.12.7",
-    "pino": "^9.3.1",
+    "pino": "^9.3.2",
+    "util": "^0.12.5",
+    "vm": "^0.1.0",
     "ws": "^8.18.0"
   }
 }

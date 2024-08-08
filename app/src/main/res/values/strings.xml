@@ -10,4 +10,5 @@
     <string name="text_number">Введите ваш номер</string>
     <string name="text_check_code">Введите код</string>
     <string name="authorization_header">Авторизация</string>
+    <string name="server">https://9611ab7d-7f8f-4e75-96ec-7f57a023b4a7-00-zs7a3a68v09t.riker.replit.dev:3000</string>
 </resources>
