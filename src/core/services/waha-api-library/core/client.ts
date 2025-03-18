@@ -55,8 +55,6 @@ export class WHBot {
           if (session.status === 'STOPPED') {
             await this.api.startSession(session.name);
             console.log('Default session started.');
-          } else {
-            console.log('Default session is already running.');
           }
           return true;
         }

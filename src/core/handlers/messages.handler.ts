@@ -1,7 +1,7 @@
 import { Context } from '../services/waha-api-library/context';
 import { PinoLogger } from 'nestjs-pino';
 
-export async function onMessages(ctx, logger: PinoLogger, whbot: any) {
+export async function onMessages(ctx: Context, logger: PinoLogger, whbot: any) {
   try {
     let text =
       ctx.data?.message?.extendedTextMessage?.text ||
