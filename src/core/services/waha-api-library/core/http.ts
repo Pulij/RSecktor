@@ -10,8 +10,8 @@ export class HttpClient {
   private async request(method: string, endpoint: string, body?: any) {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
-      "Content-Type": "application/json",
-      "x-api-key": this.apiKey,
+      'Content-Type': 'application/json',
+      'x-api-key': this.apiKey,
     };
 
     const options: RequestInit = {
@@ -28,15 +28,18 @@ export class HttpClient {
     return response.json();
   }
 
-  get(endpoint: string) {
-    return this.request("GET", endpoint);
+  get(endpoint: string, params?: any) {
+    const queryParams = params
+      ? '?' + new URLSearchParams(params).toString()
+      : '';
+    return this.request('GET', `${endpoint}${queryParams}`);
   }
 
   post(endpoint: string, body?: any) {
-    return this.request("POST", endpoint, body);
+    return this.request('POST', endpoint, body);
   }
 
   delete(endpoint: string) {
-    return this.request("DELETE", endpoint);
+    return this.request('DELETE', endpoint);
   }
 }

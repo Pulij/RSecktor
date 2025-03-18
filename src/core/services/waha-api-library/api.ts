@@ -1,4 +1,4 @@
-import { HttpClient } from "./core/http";
+import { HttpClient } from './core/http';
 
 export class Api {
   private http: HttpClient;
@@ -7,12 +7,11 @@ export class Api {
     this.http = http;
   }
 
-  async listSessions() {
-    return await this.http.get("/api/sessions");
+  async listSessions(all: boolean | undefined): Promise<[any]> {
+    return await this.http.get('/api/sessions', all ? { all } : undefined);
   }
-
-  async createSession() {
-    return await this.http.post("/api/sessions");
+  async createSession(name: string, start: boolean) {
+    return await this.http.post('/api/sessions', { name, start });
   }
 
   async getSession(sessionId: string) {
@@ -39,7 +38,7 @@ export class Api {
       text: text,
     };
 
-    return await this.http.post("/api/sendText", payload);
+    return await this.http.post('/api/sendText', payload);
   }
 
   /** Edit messages */
@@ -50,6 +49,6 @@ export class Api {
       key: content.key,
     };
 
-    return await this.http.post("/api/editText", payload);
+    return await this.http.post('/api/editText', payload);
   }
 }

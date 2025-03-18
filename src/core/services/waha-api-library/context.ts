@@ -1,4 +1,4 @@
-import { HttpClient } from "./core/http";
+import { HttpClient } from './core/http';
 
 export class Context {
   private http: HttpClient;
@@ -10,11 +10,7 @@ export class Context {
     this.http = httpClient;
 
     this.chatId =
-      data?.payload?.key?.remoteJid || data?.payload?.key?.fromMe || "";
-
-    if (!this.chatId) {
-      console.warn("Warning: No chat ID found in event data.");
-    }
+      data?.payload?.key?.remoteJid || data?.payload?.key?.fromMe || '';
 
     this.reply = this.reply.bind(this);
   }
@@ -22,7 +18,7 @@ export class Context {
   /** Ответить на сообщение */
   async reply(text: string) {
     if (!this.http) {
-      throw new Error("HTTP client is not initialized");
+      throw new Error('HTTP client is not initialized');
     }
 
     const payload = {
@@ -32,6 +28,6 @@ export class Context {
       reply_to: this.data?.payload?.key,
     };
 
-    return await this.http.post("/api/sendText", payload);
+    return await this.http.post('/api/sendText', payload);
   }
 }

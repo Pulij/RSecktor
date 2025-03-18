@@ -1,12 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Economy } from '../core/services/economy/economy';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly eco: Economy) {}
 
   @Get()
   getHello(): string {
-    return this.appService.getHello();
+    return this.eco.getHello();
   }
 }

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 const statChatSchema = new mongoose.Schema({
   userId: { type: String, index: false },
   chatId: { type: String, index: false },
@@ -11,10 +11,10 @@ const statChatSchema = new mongoose.Schema({
       lastMessage: String,
       firstMessage: String,
       firstMessageSentDate: String,
-      lastMessageSentDate: String
+      lastMessageSentDate: String,
     },
-  }
+  },
 });
 
-const statChat = mongoose.model("statsChats", statChatSchema, "statsChats");
-module.exports = statChat;
+const statChat = mongoose.model('statsChats', statChatSchema, 'statsChats');
+export default statChat;
