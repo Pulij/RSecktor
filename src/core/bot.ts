@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { WHBot } from './services/waha-api-library/core/client';
+import { WHBot } from './services/waha-api/core/client';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { onConnection } from './handlers/connection.handler';
 import { onMessages } from './handlers/messages.handler';
@@ -13,14 +13,14 @@ export class Bot implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
-    this.logger.info('RSecktor(Russian WhatsApp Bot) - Running');
     this.bot = new WHBot('', { sessionDefaultName: 'default' });
     await this.bot.init();
+    this.logger.info('RSecktor(Russian WhatsApp Bot) - Running');
     this.bot.on('default', 'engine.event', (ctx) =>
       onConnection(ctx, this.logger),
     );
     this.bot.on('default', 'message', (ctx) => {
-      onMessages(ctx, this.logger, this.bot);
+      onMessages(ctx, this.bot);
     });
   }
 

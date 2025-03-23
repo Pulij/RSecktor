@@ -28,11 +28,12 @@ export class HttpClient {
     return response.json();
   }
 
-  get(endpoint: string, params?: any) {
-    const queryParams = params
-      ? '?' + new URLSearchParams(params).toString()
-      : '';
-    return this.request('GET', `${endpoint}${queryParams}`);
+  get(endpoint: string) {
+    return this.request('GET', endpoint);
+  }
+
+  put(endpoint: string, body?: any) {
+    return this.request('PUT', endpoint, body);
   }
 
   post(endpoint: string, body?: any) {

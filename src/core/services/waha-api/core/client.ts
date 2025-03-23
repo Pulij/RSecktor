@@ -22,7 +22,7 @@ export class WHBot {
     this.api = new Api(this.http);
   }
 
-  /** Запуск инициализации бота */
+  /** Run initialization bot */
   async init() {
     try {
       const success = await this.initializeSession(
@@ -33,7 +33,6 @@ export class WHBot {
       }
       await sleep(2500);
       this.isInitialized = true;
-      console.log('Bot initialized successfully.');
     } catch (error) {
       console.error('Bot initialization failed:', error);
       throw error;
@@ -43,33 +42,34 @@ export class WHBot {
   private async initializeSession(
     sessionDefaultName?: string,
   ): Promise<boolean> {
-    if (!sessionDefaultName) return false;
+    if (!sessionDefaultName) {
+      throw new Error('Session name is not provided.');
+    }
 
     try {
-      const sessions = await this.api.listSessions(true);
-      console.log(sessions);
-
+      const sessions = await this.api.sessions.list(true);
       if (sessions.length > 0) {
         const session = sessions.find((s) => s.name === sessionDefaultName);
         if (session) {
           if (session.status === 'STOPPED') {
-            await this.api.startSession(session.name);
+            await this.api.sessions.start(session.name);
             console.log('Default session started.');
           }
           return true;
+        } else {
+          throw new Error(`Session "${sessionDefaultName}" not found.`);
         }
       } else {
-        await this.api.createSession(sessionDefaultName, true);
+        await this.api.sessions.create(sessionDefaultName, true);
         console.log('Default session created and started.');
         return true;
       }
     } catch (error) {
-      console.error('Failed to initialize default session:', error);
+      throw new Error(`Failed to initialize session: ${error.message}`);
     }
-    return false;
   }
 
-  /** Проверка, инициализирован ли бот */
+  /** Check inintialization bot */
   private checkInitialization() {
     if (!this.isInitialized) {
       throw new Error('Bot is not initialized. Call `await bot.init()` first.');
@@ -88,7 +88,7 @@ export class WHBot {
 
     const handler = (data: any) => {
       if (!data) return;
-      const ctx = new Context(data, this.http);
+      const ctx = new Context(this.api, data);
       callback(ctx);
     };
 

@@ -1,3 +1,5 @@
+import { sleep } from '../utils';
+
 export class Pooling {
   private isPollingMap: Map<string, boolean> = new Map();
 
@@ -5,7 +7,7 @@ export class Pooling {
     session: string,
     event: string,
     httpClient: { get: (url: string) => Promise<any> },
-    callback: (data: any) => void
+    callback: (data: any) => void,
   ) {
     const key = `${session}:${event}`;
 
@@ -20,7 +22,7 @@ export class Pooling {
       try {
         const data = await httpClient.get(url);
 
-        if (data?.error === "Request timed out") {
+        if (data?.error === 'Request timed out') {
           poll();
           return;
         }
@@ -28,7 +30,7 @@ export class Pooling {
         callback(data);
       } catch (error) {
         console.error(error);
-        setTimeout(poll, 5000);
+        sleep(5000);
       }
 
       if (this.isPollingMap.get(key)) {
